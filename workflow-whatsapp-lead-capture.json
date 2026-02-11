@@ -1,0 +1,65 @@
+{
+  "name": "WhatsApp Lead Capture & Auto-Reply",
+  "nodes": [
+    {
+      "parameters": {
+        "credentials": "whatsappCloudApi",
+        "events": ["message_received"]
+      },
+      "name": "WhatsApp Trigger",
+      "type": "n8n-nodes-base.whatsAppCloudApiTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "return {
+  sender: $json.from,
+  message: $json.text,
+  timestamp: $json.timestamp,
+  messageId: $json.id
+};"
+      },
+      "name": "Extract Message Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "spreadsheetId": "YOUR_SHEET_ID",
+        "resource": "spreadsheet",
+        "operation": "append",
+        "columns": "sender,message,timestamp,messageId"
+      },
+      "name": "Save to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "phoneNumber": "={{$node[\"WhatsApp Trigger\"].json.from}}",
+        "messageText": "Thank you for your message! We will respond to you shortly.",
+        "credentials": "whatsappCloudApi"
+      },
+      "name": "Send Auto-Reply",
+      "type": "n8n-nodes-base.whatsAppCloudApiSendMessage",
+      "typeVersion": 1,
+      "position": [850, 300]
+    }
+  ],
+  "connections": {
+    "WhatsApp Trigger": {
+      "main": [[{"node": "Extract Message Data", "type": "main", "index": 0}]]
+    },
+    "Extract Message Data": {
+      "main": [[{"node": "Save to Google Sheets", "type": "main", "index": 0}, {"node": "Send Auto-Reply", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "staticData": null,
+  "description": "Automatically capture leads from WhatsApp messages, save to Google Sheets, and send auto-reply",
+  "versionId": "1.0.0"
+}
