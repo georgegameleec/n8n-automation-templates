@@ -1,0 +1,69 @@
+{
+  "name": "Shopify + Gmail - Abandoned Cart Recovery",
+  "nodes": [
+    {
+      "parameters": {
+        "webhookEvents": ["checkouts/update", "orders/create"]
+      },
+      "name": "Shopify Webhook",
+      "type": "n8n-nodes-base.shopifyWebhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "if ($json.checkout.abandoned_checkout_url) {
+  return {
+    email: $json.checkout.email,
+    cartTotal: $json.checkout.total_price,
+    cartUrl: $json.checkout.abandoned_checkout_url,
+    items: $json.checkout.line_items
+  };
+} else {
+  return null;
+}"
+      },
+      "name": "Extract Abandoned Cart Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "to": "={{$json.email}}",
+        "subject": "Complete Your Purchase - {{$json.cartTotal}} USD Order",
+        "htmlBody": "<h2>Don't Forget Your Cart!</h2><p>You left some items in your cart. Complete your purchase: <a href='{{$json.cartUrl}}'>Finish Checkout</a></p>"
+      },
+      "name": "Send Reminder Email 1 Hour",
+      "type": "n8n-nodes-base.gmailSendEmail",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "webhookId": "reminder_1hour"
+    },
+    {
+      "parameters": {
+        "to": "={{$json.email}}",
+        "subject": "Complete Your Order & Get 10% Off!",
+        "htmlBody": "<h2>Last Chance!</h2><p>Your cart is about to expire. <a href='{{$json.cartUrl}}?discount=COMEBACK10'>Use code COMEBACK10 for 10% off</a>"
+      },
+      "name": "Send Reminder Email 24 Hours",
+      "type": "n8n-nodes-base.gmailSendEmail",
+      "typeVersion": 1,
+      "position": [850, 300],
+      "webhookId": "reminder_24hours"
+    }
+  ],
+  "connections": {
+    "Shopify Webhook": {
+      "main": [[{"node": "Extract Abandoned Cart Data", "type": "main", "index": 0}]]
+    },
+    "Extract Abandoned Cart Data": {
+      "main": [[{"node": "Send Reminder Email 1 Hour", "type": "main", "index": 0}, {"node": "Send Reminder Email 24 Hours", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "staticData": null,
+  "description": "Automatically send email reminders to customers with abandoned Shopify carts",
+  "versionId": "1.0.0"
+}
